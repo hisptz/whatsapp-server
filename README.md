@@ -1,4 +1,8 @@
-# HOW TO START WHATSAPP SERVER
+#WHATSAPP SERVER
+
+## Introduction
+
+This is an node application that with the help of [WPPConnect](https://wppconnect.io/) library, exposes the WhatsApp api through an express server.
 
 ## Prerequisites
 
@@ -18,14 +22,54 @@ PORT=<port_to_expose_whatsapp_api>
 
 The project can be set up by running the below command to install the project dependencies
 
+- Using npm
+
 ```
 npm install
 ```
 
-## Running the script
+- Using yarn
+
+```
+yarn install
+```
+
+## Development
+
+To start the development server, use the following commands:
+
+- Using npm
+
+```
+npm start
+```
+
+- Using yarn
+
+```
+yarn start
+```
+
+## Building
+
+A production build can be generated using the below command:
+
+- Using npm
+
+```
+npm run build
+```
+
+- Using yarn
+
+```
+yarn build
+```
+
+## Deploying the server
 
 The whatsapp server can be started by running the below command
 
 ```
-node index.js
+node app/index.js
 ```
