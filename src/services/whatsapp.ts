@@ -32,6 +32,7 @@ class WhatsappService {
    * Initializes whatsapp instance
    * */
   async init() {
+    //  TODO add message listener
     this.whatsapp = await create({
       session: this.session,
       ...(this.options ?? {}),
