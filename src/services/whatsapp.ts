@@ -1,5 +1,10 @@
 import { create, CreateOptions, Whatsapp } from "@wppconnect-team/wppconnect";
-import { ContactType, GroupIdentifier, WhatsappMessage } from "../interfaces";
+import {
+  ContactType,
+  GroupIdentifier,
+  WhatsappMessagePayload,
+  WhatsappSender,
+} from "../interfaces";
 import { compact, find, isEmpty, map } from "lodash";
 
 class WhatsappService {
@@ -32,12 +37,21 @@ class WhatsappService {
    * Initializes whatsapp instance
    * */
   async init() {
-    //  TODO add message listener
-    this.whatsapp = await create({
-      session: this.session,
-      ...(this.options ?? {}),
-    });
-    return true;
+    try {
+      this.whatsapp = await create({
+        session: this.session,
+        ...(this.options ?? {}),
+      });
+
+      // WhatsApp message listener
+      this.whatsapp?.onMessage(async (message) => {
+        await this.handleReceivedMessages(message);
+      });
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getAllGroups(): Promise<GroupIdentifier[]> {
@@ -85,7 +99,7 @@ class WhatsappService {
     return Promise.all(contacts.map(this.getChatId));
   }
 
-  async sendMessage(message: WhatsappMessage) {
+  async sendMessage(message: WhatsappMessagePayload) {
     const { text, to, type, image } = message;
     const chatIds = compact(await this.getChatIds(to));
 
@@ -120,6 +134,49 @@ class WhatsappService {
 
   protected async sendTextMessage(chatId: string, message: string) {
     return this.client.sendText(`${chatId}`, message);
+  }
+
+  /**
+   *  private method for handling received messages from the WhatsApp API
+   *
+   * @param message received message from the WhatsApp API
+   *
+   */
+  private async handleReceivedMessages(message: any): Promise<any> {
+    // add sanitization of the send message
+    const sanitizedMessage = this.sanitizeReceivedMessage(message);
+    console.log(JSON.stringify(sanitizedMessage));
+  }
+
+  private sanitizeReceivedMessage(message: any) {
+    const {
+      id,
+      type,
+      body,
+      caption,
+      isForwarded,
+      from,
+      author,
+      sender,
+      isGroupMsg: isGroupMessage,
+    } = message;
+
+    const { id: senderId, name } = sender as WhatsappSender;
+
+    return {
+      id,
+      type,
+      body,
+      caption,
+      isForwarded,
+      from,
+      author,
+      isGroupMessage,
+      sender: {
+        id: senderId,
+        name,
+      },
+    };
   }
 }
 

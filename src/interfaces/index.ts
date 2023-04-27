@@ -1,7 +1,7 @@
 export type ContactType = "individual" | "group";
 export type MessageType = "image" | "text" | "file";
 
-export interface WhatsappMessage {
+export interface WhatsappMessagePayload {
   to: {
     type: ContactType;
     number: string;
@@ -10,6 +10,23 @@ export interface WhatsappMessage {
   text?: string;
   image?: any;
   file?: any;
+}
+
+export interface WhatsappMessageResponse {
+  id: string;
+  type: string;
+  body: string;
+  caption?: string;
+  isForwarded: boolean;
+  from: string;
+  author?: string;
+  sender: WhatsappSender;
+  isGroupMessage: boolean;
+}
+
+export interface WhatsappSender {
+  id: string;
+  name: string;
 }
 
 export interface GroupIdentifier {
