@@ -3,9 +3,11 @@ import {
   ContactType,
   GroupIdentifier,
   WhatsappMessagePayload,
+  WhatsappMessageResponse,
   WhatsappSender,
 } from "../interfaces";
 import { compact, find, isEmpty, map } from "lodash";
+import axios from "axios";
 
 class WhatsappService {
   whatsapp?: Whatsapp;
@@ -45,7 +47,9 @@ class WhatsappService {
 
       // WhatsApp message listener
       this.whatsapp?.onMessage(async (message) => {
-        await this.handleReceivedMessages(message);
+        // add sanitization of the send message
+        const sanitizedMessage = this.sanitizeReceivedMessage(message);
+        await this.handleReceivedMessages(sanitizedMessage);
       });
 
       return true;
@@ -142,13 +146,28 @@ class WhatsappService {
    * @param message received message from the WhatsApp API
    *
    */
-  private async handleReceivedMessages(message: any): Promise<any> {
-    // add sanitization of the send message
-    const sanitizedMessage = this.sanitizeReceivedMessage(message);
-    console.log(JSON.stringify(sanitizedMessage));
+  private async handleReceivedMessages(
+    message: WhatsappMessageResponse
+  ): Promise<any> {
+    // Sending the received message to the handler gateway
+    const inboxGateway = process.env.WHATSAPP_MESSAGE_HANDLER_GATEWAY;
+    console.log(message);
+    if (inboxGateway) {
+      await axios
+        .post(inboxGateway, message)
+        .then(({ data }) => {
+          console.log(data);
+        })
+        .catch((error) => {
+          throw error;
+        });
+    } else {
+      throw new Error("WhatsApp message handler gateway not found!");
+    }
+    // TODO return the reply message
   }
 
-  private sanitizeReceivedMessage(message: any) {
+  private sanitizeReceivedMessage(message: any): WhatsappMessageResponse {
     const {
       id,
       type,
