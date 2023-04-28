@@ -1,6 +1,13 @@
 import { create, CreateOptions, Whatsapp } from "@wppconnect-team/wppconnect";
-import { ContactType, GroupIdentifier, WhatsappMessage } from "../interfaces";
 import { compact, find, isEmpty, map } from "lodash";
+import axios from "axios";
+import {
+  ContactType,
+  GroupIdentifier,
+  WhatsappMessagePayload,
+  WhatsappMessageResponse,
+} from "../interfaces";
+import { messagePayloadSchema } from "../schema";
 
 class WhatsappService {
   whatsapp?: Whatsapp;
@@ -32,12 +39,36 @@ class WhatsappService {
    * Initializes whatsapp instance
    * */
   async init() {
-    //  TODO add message listener
-    this.whatsapp = await create({
-      session: this.session,
-      ...(this.options ?? {}),
-    });
-    return true;
+    try {
+      this.whatsapp = await create({
+        session: this.session,
+        ...(this.options ?? {}),
+      });
+
+      // WhatsApp message listener
+      this.whatsapp?.onMessage(async (message) => {
+        // add sanitization of the send message
+        const sanitizedMessage: WhatsappMessageResponse =
+          this.sanitizeReceivedMessage(message);
+        try {
+          const replyPayload = await this.handleReceivedMessages(
+            sanitizedMessage
+          );
+
+          // send the reply message
+          if (replyPayload) {
+            await this.sendReplyMessage(sanitizedMessage, replyPayload);
+          }
+        } catch (error) {
+          console.error(error);
+          const { from } = sanitizedMessage;
+          await this.sendDefaultErrorReplyMessage(from);
+        }
+      });
+      return true;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getAllGroups(): Promise<GroupIdentifier[]> {
@@ -85,7 +116,7 @@ class WhatsappService {
     return Promise.all(contacts.map(this.getChatId));
   }
 
-  async sendMessage(message: WhatsappMessage) {
+  async sendMessage(message: WhatsappMessagePayload) {
     const { text, to, type, image } = message;
     const chatIds = compact(await this.getChatIds(to));
 
@@ -98,7 +129,7 @@ class WhatsappService {
         return Promise.all(
           chatIds.map((chatId) => this.sendImageMessage(chatId, image, text))
         );
-      case "text":
+      case "chat":
         if (!text) {
           throw `Please specify text to send`;
         }
@@ -119,7 +150,102 @@ class WhatsappService {
   }
 
   protected async sendTextMessage(chatId: string, message: string) {
+    // TODO add text reply ability
     return this.client.sendText(`${chatId}`, message);
+  }
+
+  private async handleReceivedMessages(
+    message: WhatsappMessageResponse
+  ): Promise<any> {
+    // Sending the received message to the handler gateway
+    const inboxGateway = process.env.WHATSAPP_MESSAGE_HANDLER_GATEWAY;
+
+    if (inboxGateway) {
+      return await axios
+        .post(inboxGateway, message)
+        .then(({ data }) => {
+          return data;
+        })
+        .catch((error) => {
+          throw error;
+        });
+    } else {
+      throw new Error("WhatsApp message handler gateway not found!");
+    }
+  }
+
+  private sanitizeReceivedMessage(message: any): WhatsappMessageResponse {
+    const {
+      id,
+      type,
+      body,
+      notifyName,
+      caption,
+      isForwarded,
+      from,
+      author,
+      isGroupMsg: isGroupMessage,
+    } = message;
+
+    const sanitizedWhatsappPayload: WhatsappMessageResponse = {
+      id,
+      from: {
+        type: isGroupMessage ? "group" : "individual",
+        number: this.decodeNumberFromWhatsappId(from),
+        author: isGroupMessage
+          ? this.decodeNumberFromWhatsappId(author)
+          : this.decodeNumberFromWhatsappId(from),
+        name: notifyName,
+      },
+      type,
+      text: type === "chat" ? body : caption ?? null,
+      image: type === "image" ? body : null,
+      file: ["document", "audio", "video"].includes(type) ? body : null,
+      isForwarded,
+    };
+
+    return sanitizedWhatsappPayload;
+  }
+
+  private decodeNumberFromWhatsappId(wid: string): string {
+    return (wid ?? "").split("@")[0];
+  }
+
+  private async sendDefaultErrorReplyMessage(destination: any): Promise<void> {
+    var defaultErrorReplyMessage: WhatsappMessagePayload = {
+      to: [
+        {
+          number: destination.number ?? "",
+          type: destination.type ?? "individual",
+        },
+      ],
+      type: "chat",
+      text: "Something went wrong. Try again later!",
+    };
+    await this.sendMessage(defaultErrorReplyMessage);
+  }
+
+  private async sendReplyMessage(
+    sanitizedMessage,
+    replyPayload
+  ): Promise<void> {
+    const { value, warning, error } =
+      messagePayloadSchema.validate(replyPayload);
+    try {
+      if (error) {
+        console.error(error);
+        const { from } = sanitizedMessage;
+        await this.sendDefaultErrorReplyMessage(from);
+        return;
+      }
+      if (warning) {
+        console.warn(warning);
+      }
+      console.info(`Data captured: ${JSON.stringify(value)}`);
+      await this.sendMessage(value);
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
 
