@@ -4,7 +4,6 @@ import {
   GroupIdentifier,
   WhatsappMessagePayload,
   WhatsappMessageResponse,
-  WhatsappSender,
 } from "../interfaces";
 import { compact, find, isEmpty, map } from "lodash";
 import axios from "axios";
@@ -116,7 +115,7 @@ class WhatsappService {
         return Promise.all(
           chatIds.map((chatId) => this.sendImageMessage(chatId, image, text))
         );
-      case "text":
+      case "chat":
         if (!text) {
           throw `Please specify text to send`;
         }
@@ -146,56 +145,62 @@ class WhatsappService {
    * @param message received message from the WhatsApp API
    *
    */
-  private async handleReceivedMessages(
-    message: WhatsappMessageResponse
-  ): Promise<any> {
+  private async handleReceivedMessages(message: any): Promise<any> {
     // Sending the received message to the handler gateway
     const inboxGateway = process.env.WHATSAPP_MESSAGE_HANDLER_GATEWAY;
-    console.log(message);
+
     if (inboxGateway) {
-      await axios
+      const response = await axios
         .post(inboxGateway, message)
         .then(({ data }) => {
           console.log(data);
+
+          return data;
         })
         .catch((error) => {
           throw error;
         });
+
+      return response;
     } else {
       throw new Error("WhatsApp message handler gateway not found!");
     }
     // TODO return the reply message
   }
 
-  private sanitizeReceivedMessage(message: any): WhatsappMessageResponse {
+  private sanitizeReceivedMessage(message: any): any {
     const {
-      id,
       type,
       body,
+      notifyName,
       caption,
       isForwarded,
       from,
       author,
-      sender,
       isGroupMsg: isGroupMessage,
     } = message;
 
-    const { id: senderId, name } = sender as WhatsappSender;
-
-    return {
-      id,
-      type,
-      body,
-      caption,
-      isForwarded,
-      from,
-      author,
-      isGroupMessage,
-      sender: {
-        id: senderId,
-        name,
+    const sanitizedWhatsappPayload: WhatsappMessageResponse = {
+      from: {
+        type: isGroupMessage ? "group" : "individual",
+        number: this.decodeNumberFromWhatsappId(from),
+        author: isGroupMessage
+          ? this.decodeNumberFromWhatsappId(author)
+          : this.decodeNumberFromWhatsappId(from),
+        name: notifyName,
       },
+      type,
+      text: type === "chat" ? body : caption ?? null,
+      image: type === "image" ? body : null,
+      file: ["document", "audio", "video"].includes(type) ? body : null,
+      isForwarded,
     };
+
+    return sanitizedWhatsappPayload;
+  }
+
+  private decodeNumberFromWhatsappId(wid: string): string {
+    return (wid ?? "").split("@")[0];
   }
 }
 
