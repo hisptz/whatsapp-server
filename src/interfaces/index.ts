@@ -24,6 +24,7 @@ export interface WhatsappMessageResponse extends BaseWhatsappMessage {
 
 export interface BaseWhatsappMessage {
   type: MessageType;
+  id?: string;
   text?: string;
   image?: any;
   file?: any;

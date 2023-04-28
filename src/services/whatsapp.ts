@@ -1,12 +1,13 @@
 import { create, CreateOptions, Whatsapp } from "@wppconnect-team/wppconnect";
+import { compact, find, isEmpty, map } from "lodash";
+import axios from "axios";
 import {
   ContactType,
   GroupIdentifier,
   WhatsappMessagePayload,
   WhatsappMessageResponse,
 } from "../interfaces";
-import { compact, find, isEmpty, map } from "lodash";
-import axios from "axios";
+import { messagePayloadSchema } from "../schema";
 
 class WhatsappService {
   whatsapp?: Whatsapp;
@@ -47,10 +48,23 @@ class WhatsappService {
       // WhatsApp message listener
       this.whatsapp?.onMessage(async (message) => {
         // add sanitization of the send message
-        const sanitizedMessage = this.sanitizeReceivedMessage(message);
-        await this.handleReceivedMessages(sanitizedMessage);
-      });
+        const sanitizedMessage: WhatsappMessageResponse =
+          this.sanitizeReceivedMessage(message);
+        try {
+          const replyPayload = await this.handleReceivedMessages(
+            sanitizedMessage
+          );
 
+          // send the reply message
+          if (replyPayload) {
+            await this.sendReplyMessage(sanitizedMessage, replyPayload);
+          }
+        } catch (error) {
+          console.error(error);
+          const { from } = sanitizedMessage;
+          await this.sendDefaultErrorReplyMessage(from);
+        }
+      });
       return true;
     } catch (error) {
       throw error;
@@ -136,40 +150,33 @@ class WhatsappService {
   }
 
   protected async sendTextMessage(chatId: string, message: string) {
+    // TODO add text reply ability
     return this.client.sendText(`${chatId}`, message);
   }
 
-  /**
-   *  private method for handling received messages from the WhatsApp API
-   *
-   * @param message received message from the WhatsApp API
-   *
-   */
-  private async handleReceivedMessages(message: any): Promise<any> {
+  private async handleReceivedMessages(
+    message: WhatsappMessageResponse
+  ): Promise<any> {
     // Sending the received message to the handler gateway
     const inboxGateway = process.env.WHATSAPP_MESSAGE_HANDLER_GATEWAY;
 
     if (inboxGateway) {
-      const response = await axios
+      return await axios
         .post(inboxGateway, message)
         .then(({ data }) => {
-          console.log(data);
-
           return data;
         })
         .catch((error) => {
           throw error;
         });
-
-      return response;
     } else {
       throw new Error("WhatsApp message handler gateway not found!");
     }
-    // TODO return the reply message
   }
 
-  private sanitizeReceivedMessage(message: any): any {
+  private sanitizeReceivedMessage(message: any): WhatsappMessageResponse {
     const {
+      id,
       type,
       body,
       notifyName,
@@ -181,6 +188,7 @@ class WhatsappService {
     } = message;
 
     const sanitizedWhatsappPayload: WhatsappMessageResponse = {
+      id,
       from: {
         type: isGroupMessage ? "group" : "individual",
         number: this.decodeNumberFromWhatsappId(from),
@@ -201,6 +209,43 @@ class WhatsappService {
 
   private decodeNumberFromWhatsappId(wid: string): string {
     return (wid ?? "").split("@")[0];
+  }
+
+  private async sendDefaultErrorReplyMessage(destination: any): Promise<void> {
+    var defaultErrorReplyMessage: WhatsappMessagePayload = {
+      to: [
+        {
+          number: destination.number ?? "",
+          type: destination.type ?? "individual",
+        },
+      ],
+      type: "chat",
+      text: "Something went wrong. Try again later!",
+    };
+    await this.sendMessage(defaultErrorReplyMessage);
+  }
+
+  private async sendReplyMessage(
+    sanitizedMessage,
+    replyPayload
+  ): Promise<void> {
+    const { value, warning, error } =
+      messagePayloadSchema.validate(replyPayload);
+    try {
+      if (error) {
+        console.error(error);
+        const { from } = sanitizedMessage;
+        await this.sendDefaultErrorReplyMessage(from);
+        return;
+      }
+      if (warning) {
+        console.warn(warning);
+      }
+      console.info(`Data captured: ${JSON.stringify(value)}`);
+      await this.sendMessage(value);
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
 
