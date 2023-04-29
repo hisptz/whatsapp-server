@@ -46,10 +46,10 @@ class WhatsappService {
       });
 
       // WhatsApp message listener
-      this.whatsapp?.onMessage(async (message) => {
+      this.whatsapp?.onMessage(async (whatsappMessage) => {
         // add sanitization of the send message
         const sanitizedMessage: WhatsappMessageResponse =
-          this.sanitizeReceivedMessage(message);
+          this.sanitizeReceivedMessage(whatsappMessage);
         try {
           const replyPayload = await this.handleReceivedMessages(
             sanitizedMessage
@@ -116,8 +116,9 @@ class WhatsappService {
     return Promise.all(contacts.map(this.getChatId));
   }
 
-  async sendMessage(message: WhatsappMessagePayload) {
-    const { text, to, type, image } = message;
+  async sendMessage(messagePayload: WhatsappMessagePayload) {
+    const { to, message } = messagePayload;
+    const { text, type, image } = message;
     const chatIds = compact(await this.getChatIds(to));
 
     if (isEmpty(chatIds)) {
@@ -146,6 +147,7 @@ class WhatsappService {
     imagePath: string,
     caption?: string
   ) {
+    // TODO add support for base64
     return this.client.sendImage(`${chatId}`, imagePath, undefined, caption);
   }
 
@@ -155,14 +157,14 @@ class WhatsappService {
   }
 
   private async handleReceivedMessages(
-    message: WhatsappMessageResponse
+    messagePayload: WhatsappMessageResponse
   ): Promise<any> {
     // Sending the received message to the handler gateway
     const inboxGateway = process.env.WHATSAPP_MESSAGE_HANDLER_GATEWAY;
 
     if (inboxGateway) {
       return await axios
-        .post(inboxGateway, message)
+        .post(inboxGateway, messagePayload)
         .then(({ data }) => {
           return data;
         })
@@ -174,7 +176,9 @@ class WhatsappService {
     }
   }
 
-  private sanitizeReceivedMessage(message: any): WhatsappMessageResponse {
+  private sanitizeReceivedMessage(
+    messagePayload: any
+  ): WhatsappMessageResponse {
     const {
       id,
       type,
@@ -185,10 +189,9 @@ class WhatsappService {
       from,
       author,
       isGroupMsg: isGroupMessage,
-    } = message;
+    } = messagePayload;
 
     const sanitizedWhatsappPayload: WhatsappMessageResponse = {
-      id,
       from: {
         type: isGroupMessage ? "group" : "individual",
         number: this.decodeNumberFromWhatsappId(from),
@@ -197,10 +200,13 @@ class WhatsappService {
           : this.decodeNumberFromWhatsappId(from),
         name: notifyName,
       },
-      type,
-      text: type === "chat" ? body : caption ?? null,
-      image: type === "image" ? body : null,
-      file: ["document", "audio", "video"].includes(type) ? body : null,
+      message: {
+        id,
+        type,
+        text: type === "chat" ? body : caption ?? null,
+        image: type === "image" ? body : null,
+        file: ["document", "audio", "video"].includes(type) ? body : null,
+      },
       isForwarded,
     };
 
@@ -219,8 +225,10 @@ class WhatsappService {
           type: destination.type ?? "individual",
         },
       ],
-      type: "chat",
-      text: "Something went wrong. Try again later!",
+      message: {
+        type: "chat",
+        text: "Something went wrong. Try again later!",
+      },
     };
     await this.sendMessage(defaultErrorReplyMessage);
   }
