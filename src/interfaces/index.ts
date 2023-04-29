@@ -31,3 +31,7 @@ export interface BaseWhatsappMessage {
   image?: any;
   file?: any;
 }
+
+export interface SendMessageOptions {
+  quotedMsg?: string;
+}

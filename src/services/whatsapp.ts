@@ -4,6 +4,7 @@ import axios from "axios";
 import {
   ContactType,
   GroupIdentifier,
+  SendMessageOptions,
   WhatsappMessagePayload,
   WhatsappMessageResponse,
 } from "../interfaces";
@@ -118,7 +119,7 @@ class WhatsappService {
 
   async sendMessage(messagePayload: WhatsappMessagePayload) {
     const { to, message } = messagePayload;
-    const { text, type, image } = message;
+    const { text, type, image, id: quotedMsg } = message;
     const chatIds = compact(await this.getChatIds(to));
 
     if (isEmpty(chatIds)) {
@@ -135,7 +136,9 @@ class WhatsappService {
           throw `Please specify text to send`;
         }
         return Promise.all(
-          chatIds.map((chatId) => this.sendTextMessage(chatId, text))
+          chatIds.map((chatId) =>
+            this.sendTextMessage(chatId, text, { quotedMsg })
+          )
         );
       default:
         throw `Sending ${type}  messages is currently not supported`;
@@ -151,9 +154,12 @@ class WhatsappService {
     return this.client.sendImage(`${chatId}`, imagePath, undefined, caption);
   }
 
-  protected async sendTextMessage(chatId: string, message: string) {
-    // TODO add text reply ability
-    return this.client.sendText(`${chatId}`, message);
+  protected async sendTextMessage(
+    chatId: string,
+    message: string,
+    options?: SendMessageOptions
+  ) {
+    return this.client.sendText(`${chatId}`, message, options);
   }
 
   private async handleReceivedMessages(
