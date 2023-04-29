@@ -1,24 +1,26 @@
 export type ContactType = "individual" | "group";
-export type MessageType = "image" | "chat" | "document" | "audio" | "video";
+export type MessageType = "image" | "chat" | "document" | "video";
 
 export interface GroupIdentifier {
   id: string;
   name: string;
 }
-export interface WhatsappMessagePayload extends BaseWhatsappMessage {
+export interface WhatsappMessagePayload {
   to: {
     type: ContactType;
     number: string;
   }[];
+  message: BaseWhatsappMessage;
 }
 
-export interface WhatsappMessageResponse extends BaseWhatsappMessage {
+export interface WhatsappMessageResponse {
   from: {
     type: ContactType;
     number: string;
     author?: string;
     name?: string;
   };
+  message: BaseWhatsappMessage;
   isForwarded: boolean;
 }
 
@@ -28,4 +30,8 @@ export interface BaseWhatsappMessage {
   text?: string;
   image?: any;
   file?: any;
+}
+
+export interface SendMessageOptions {
+  quotedMsg?: string;
 }
