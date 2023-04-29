@@ -1,6 +1,7 @@
 import { create, CreateOptions, Whatsapp } from "@wppconnect-team/wppconnect";
 import { compact, find, isEmpty, map } from "lodash";
 import axios from "axios";
+import { uid } from "@hisptz/dhis2-utils";
 import {
   ContactType,
   GroupIdentifier,
@@ -129,7 +130,9 @@ class WhatsappService {
     switch (type) {
       case "image":
         return Promise.all(
-          chatIds.map((chatId) => this.sendImageMessage(chatId, image, text))
+          chatIds.map((chatId) =>
+            this.sendImageMessage(chatId, image, text, quotedMsg)
+          )
         );
       case "chat":
         if (!text) {
@@ -140,6 +143,18 @@ class WhatsappService {
             this.sendTextMessage(chatId, text, { quotedMsg })
           )
         );
+      case "document":
+        return Promise.all(
+          chatIds.map((chatId) =>
+            this.sendFileMessage(chatId, image, text, quotedMsg)
+          )
+        );
+      case "video":
+        return Promise.all(
+          chatIds.map((chatId) =>
+            this.sendVideoMessage(chatId, image, text, quotedMsg)
+          )
+        );
       default:
         throw `Sending ${type}  messages is currently not supported`;
     }
@@ -148,10 +163,47 @@ class WhatsappService {
   protected async sendImageMessage(
     chatId: string,
     imagePath: string,
-    caption?: string
+    caption?: string,
+    quotedMessageId?: string
   ) {
-    // TODO add support for base64
-    return this.client.sendImage(`${chatId}`, imagePath, undefined, caption);
+    const randomFileName = uid();
+    return this.client.sendImageFromBase64(
+      `${chatId}`,
+      imagePath,
+      randomFileName,
+      caption,
+      quotedMessageId
+    );
+  }
+
+  protected async sendVideoMessage(
+    chatId: string,
+    imagePath: string,
+    caption?: string,
+    quotedMessageId?: string
+  ) {
+    const randomFileName = uid();
+    return this.client.sendVideoAsGifFromBase64(
+      `${chatId}`,
+      imagePath,
+      randomFileName,
+      caption,
+      quotedMessageId
+    );
+  }
+
+  protected async sendFileMessage(
+    chatId: string,
+    imagePath: string,
+    caption?: string,
+    quotedMessageId?: string
+  ) {
+    const filename = uid();
+    return this.client.sendFile(`${chatId}`, imagePath, {
+      caption,
+      filename,
+      quotedMsg: quotedMessageId,
+    });
   }
 
   protected async sendTextMessage(

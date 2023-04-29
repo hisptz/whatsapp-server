@@ -1,5 +1,5 @@
 export type ContactType = "individual" | "group";
-export type MessageType = "image" | "chat" | "document" | "audio" | "video";
+export type MessageType = "image" | "chat" | "document" | "video";
 
 export interface GroupIdentifier {
   id: string;

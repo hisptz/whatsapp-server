@@ -15,7 +15,7 @@ export const messagePayloadSchema = Joi.object({
     .label("contact details"),
   message: Joi.object({
     type: Joi.string()
-      .pattern(/image|chat|document|audio|video|document/)
+      .pattern(/image|chat|document|video|document/)
       .required()
       .label("type of message"),
     id: Joi.string().optional(),
