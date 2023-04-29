@@ -7,6 +7,8 @@ const router: Router = Router();
 router.post(`/send`, async (req, res) => {
   const data = req.body;
 
+  console.log(data);
+
   if (data) {
     const { value, warning, error } = messagePayloadSchema.validate(data);
 

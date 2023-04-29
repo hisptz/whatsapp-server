@@ -13,12 +13,16 @@ export const messagePayloadSchema = Joi.object({
     )
     .required()
     .label("contact details"),
-  type: Joi.string()
-    .pattern(/image|chat|document|audio|video|document/)
+  message: Joi.object({
+    type: Joi.string()
+      .pattern(/image|chat|document|video|document/)
+      .required()
+      .label("type of message"),
+    id: Joi.string().optional(),
+    text: Joi.string().optional(),
+    image: Joi.string().optional(),
+    file: Joi.string().optional(),
+  })
     .required()
-    .label("type of message"),
-  id: Joi.string().optional(),
-  text: Joi.string().optional(),
-  image: Joi.string().optional(),
-  file: Joi.string().optional(),
+    .label("message"),
 });
