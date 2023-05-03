@@ -1,4 +1,4 @@
-#WHATSAPP SERVER
+# WHATSAPP SERVER
 
 ## Introduction
 
@@ -41,13 +41,13 @@ To start the development server, use the following commands:
 - Using npm
 
 ```
-npm start
+npm dev
 ```
 
 - Using yarn
 
 ```
-yarn start
+yarn dev
 ```
 
 ## Building
@@ -71,5 +71,9 @@ yarn build
 The whatsapp server can be started by running the below command
 
 ```
-node app/index.js
+npm start
+```
+or 
+```shell
+yarn start
 ```
