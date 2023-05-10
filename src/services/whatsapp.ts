@@ -57,6 +57,12 @@ class WhatsappService {
         const sanitizedMessage: WhatsappMessageResponse =
           this.sanitizeReceivedMessage(whatsappMessage);
         try {
+          const { message } = sanitizedMessage;
+
+          if (message.type === "ciphertext") {
+            // For ignoring the initial cipher texts
+            return;
+          }
           const replyPayload = await this.handleReceivedMessages(
             sanitizedMessage
           );
@@ -91,11 +97,11 @@ class WhatsappService {
   }
 
   getContactChatId(number: string): string {
-    return number.includes("@c.us`") ? number : `${number}@c.us`;
+    return number.includes("@c.us") ? number : `${number}@c.us`;
   }
 
   getGroupChatId(number: string): string {
-    return number.includes("@g.us`") ? number : `${number}@g.us`;
+    return number.includes("@g.us") ? number : `${number}@g.us`;
   }
 
   async getChatId({ type, number }: { type: ContactType; number: string }) {
