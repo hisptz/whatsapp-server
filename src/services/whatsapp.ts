@@ -37,19 +37,22 @@ class WhatsappService {
     }
   }
 
-  /*
-   * Initializes whatsapp instance
-   * */
-  async init() {
-    try {
-      this.whatsapp = await create({
-        session: this.session,
-        ...(this.options ?? {}),
-        puppeteerOptions: {
-          headless: "new",
-          args: ["--no-sandbox", "--disable-setuid-sandbox"],
-        },
-      });
+    /*
+     * Initializes whatsapp instance
+     * */
+    async init() {
+        try {
+            this.whatsapp = await create({
+                session: this.session,
+                ...(this.options ?? {}),
+                puppeteerOptions: {
+                    headless: "new",
+                    args: [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                    ]
+                }
+            });
 
       // WhatsApp message listener
       this.whatsapp?.onMessage(async (whatsappMessage) => {
