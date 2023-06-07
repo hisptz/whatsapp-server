@@ -20,5 +20,6 @@ RUN apt-get update && apt-get install gnupg wget -y && \
 
 RUN yarn install --production
 
+EXPOSE 4000
 
 ENTRYPOINT ["node", "app/index"]

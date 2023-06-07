@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-server",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "This is an node application that with the help of WPPConnect library, exposes the WhatsApp api through an express server.",
   "dependencies": {
     "@dhis2/d2-i18n": "^1.1.1",
