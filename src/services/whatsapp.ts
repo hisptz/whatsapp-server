@@ -1,7 +1,7 @@
-import { create, CreateOptions, Whatsapp } from "@wppconnect-team/wppconnect";
-import { compact, isEmpty, map } from "lodash";
+import {create, CreateOptions, Whatsapp} from "@wppconnect-team/wppconnect";
+import {compact, isEmpty, map} from "lodash";
 import axios from "axios";
-import { uid } from "@hisptz/dhis2-utils";
+import {uid} from "@hisptz/dhis2-utils";
 import {
   ContactType,
   GroupIdentifier,
@@ -9,7 +9,7 @@ import {
   WhatsappMessagePayload,
   WhatsappMessageResponse,
 } from "../interfaces";
-import { messagePayloadSchema } from "../schema";
+import {messagePayloadSchema} from "../schema";
 
 class WhatsappService {
   whatsapp?: Whatsapp;
@@ -55,16 +55,13 @@ class WhatsappService {
       this.whatsapp?.onMessage(async (whatsappMessage) => {
         // add sanitization of the send message
         const sanitizedMessage: WhatsappMessageResponse =
-          this.sanitizeReceivedMessage(whatsappMessage);
+            this.sanitizeReceivedMessage(whatsappMessage);
         try {
-          const { message, from } = sanitizedMessage;
-
+          const {message, from} = sanitizedMessage;
           const whitelistedPhoneNumbers = process.env.ALLOWED_CONTACTS;
           const sanitizedPhoneNumber = from.number.replace(/@c.us|@g.us/, "");
-          if (!whitelistedPhoneNumbers.includes(sanitizedPhoneNumber)) {
-            console.info(
-              `Message from: ${sanitizedPhoneNumber}, Not a whitelisted number. Ignoring`
-            );
+          if (!isEmpty(whitelistedPhoneNumbers) && !whitelistedPhoneNumbers.includes(sanitizedPhoneNumber)) {
+            console.info(`Message from: ${sanitizedPhoneNumber}, Not a whitelisted number. Ignoring`)
             return;
           }
 
@@ -73,7 +70,7 @@ class WhatsappService {
             return;
           }
           const replyPayload = await this.handleReceivedMessages(
-            sanitizedMessage
+              sanitizedMessage
           );
 
           // send the reply message
