@@ -17,7 +17,6 @@ router.post(`/send`, async (req, res) => {
     if (warning) {
       console.warn(warning);
     }
-    console.info(`Data captured: ${JSON.stringify(value)}`);
     try {
       const response = await Whatsapp.sendMessage(value);
       res.status(200).json(response);
