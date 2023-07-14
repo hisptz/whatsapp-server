@@ -94,8 +94,7 @@ class WhatsappService {
 
   async getAllGroups(): Promise<GroupIdentifier[]> {
     try {
-      const groups = await this.client.getAllGroups();
-
+      const groups = await this.client.listChats({ onlyGroups: true });
       return map(groups, (group) => ({
         id: group.id._serialized,
         name: group.name,
