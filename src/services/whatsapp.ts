@@ -228,10 +228,20 @@ class WhatsappService {
   ): Promise<any> {
     // Sending the received message to the handler gateway
     const inboxGateway = process.env.WHATSAPP_MESSAGE_HANDLER_GATEWAY;
+    const apiKey = process.env.WHATSAPP_MESSAGE_HANDLER_API_KEY;
+
+    // to handle inbox gateway key
+    const config = apiKey
+      ? {
+          headers: {
+            "x-api-key": apiKey,
+          },
+        }
+      : {};
 
     if (inboxGateway) {
       return await axios
-        .post(inboxGateway, messagePayload)
+        .post(inboxGateway, messagePayload, config)
         .then(({ data }) => {
           return data;
         })
@@ -258,7 +268,7 @@ class WhatsappService {
       isGroupMsg: isGroupMessage,
     } = messagePayload;
 
-    const sanitizedWhatsappPayload: WhatsappMessageResponse = {
+    let sanitizedWhatsappPayload: WhatsappMessageResponse = {
       from: {
         type: isGroupMessage ? "group" : "individual",
         number: this.decodeNumberFromWhatsappId(from),
@@ -285,7 +295,7 @@ class WhatsappService {
   }
 
   private async sendDefaultErrorReplyMessage(destination: any): Promise<void> {
-    var defaultErrorReplyMessage: WhatsappMessagePayload = {
+    const defaultErrorReplyMessage: WhatsappMessagePayload = {
       to: [
         {
           number: destination.number ?? "",
@@ -301,8 +311,8 @@ class WhatsappService {
   }
 
   private async sendReplyMessage(
-    sanitizedMessage,
-    replyPayload
+    sanitizedMessage: WhatsappMessageResponse,
+    replyPayload: any
   ): Promise<void> {
     const { value, warning, error } =
       messagePayloadSchema.validate(replyPayload);
