@@ -108,6 +108,10 @@ class WhatsappService {
     return number.includes("@c.us") ? number : `${number}@c.us`;
   }
 
+  async isConnetionOnline(): Promise<boolean> {
+    return this.whatsapp?.isAuthenticated();
+  }
+
   getGroupChatId(number: string): string {
     return number.includes("@g.us") ? number : `${number}@g.us`;
   }

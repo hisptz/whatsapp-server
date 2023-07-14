@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { messagePayloadSchema } from "../schema";
 import Whatsapp from "../services/whatsapp";
+import whatsapp from "../services/whatsapp";
 
 const router: Router = Router();
 
@@ -35,6 +36,20 @@ router.get("/groups", async (req, res) => {
   try {
     const groups = await Whatsapp.getAllGroups();
     res.status(200).send({ groups });
+  } catch (error) {
+    const errorCode = 500;
+    res.status(errorCode).send({ status: "Error", message: `${error}` });
+  }
+});
+
+router.get("/ping", async (req, res) => {
+  try {
+    const status = await whatsapp.isConnetionOnline();
+    res.status(200).send({
+      status: status ? "online" : "offline",
+      message: "OK",
+      timestamp: Date.now(),
+    });
   } catch (error) {
     const errorCode = 500;
     res.status(errorCode).send({ status: "Error", message: `${error}` });
