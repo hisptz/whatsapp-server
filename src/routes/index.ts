@@ -1,14 +1,12 @@
 import { Router } from "express";
 import { messagePayloadSchema } from "../schema";
 import Whatsapp from "../services/whatsapp";
+import whatsapp from "../services/whatsapp";
 
 const router: Router = Router();
 
 router.post(`/send`, async (req, res) => {
   const data = req.body;
-
-  console.log(data);
-
   if (data) {
     const { value, warning, error } = messagePayloadSchema.validate(data);
 
@@ -20,10 +18,8 @@ router.post(`/send`, async (req, res) => {
     if (warning) {
       console.warn(warning);
     }
-    console.info(`Data captured: ${JSON.stringify(value)}`);
     try {
       const response = await Whatsapp.sendMessage(value);
-      console.log(response);
       res.status(200).json(response);
     } catch (e: any) {
       console.error(e);
@@ -41,7 +37,21 @@ router.get("/groups", async (req, res) => {
     const groups = await Whatsapp.getAllGroups();
     res.status(200).send({ groups });
   } catch (error) {
-    var errorCode = 500;
+    const errorCode = 500;
+    res.status(errorCode).send({ status: "Error", message: `${error}` });
+  }
+});
+
+router.get("/ping", async (req, res) => {
+  try {
+    const status = await whatsapp.isConnetionOnline();
+    res.status(200).send({
+      status: status ? "online" : "offline",
+      message: "OK",
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    const errorCode = 500;
     res.status(errorCode).send({ status: "Error", message: `${error}` });
   }
 });
