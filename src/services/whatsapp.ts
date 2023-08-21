@@ -102,7 +102,7 @@ class WhatsappService {
 						const groups = await this.client.listChats({onlyGroups: true});
 						return map(groups, (group) => ({
 								id: group.id._serialized,
-								name: group.name
+								name: group.name ?? (group.groupMetadata as any)?.subject
 						}));
 				} catch (error) {
 						throw error;
