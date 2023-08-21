@@ -58,6 +58,7 @@ class WhatsappService {
 										this.sanitizeReceivedMessage(whatsappMessage);
 								try {
 										const {message, from} = sanitizedMessage;
+
 										let whitelistedPhoneNumbers = [];
 										try {
 												whitelistedPhoneNumbers = JSON.parse(`${process.env.ALLOWED_CONTACTS}` ?? '[]') || []
@@ -71,7 +72,8 @@ class WhatsappService {
 												return;
 										}
 
-										if (message.type.toLowerCase() === "ciphertext") {
+										if (message.type.toLowerCase() !== "chat") {
+												console.info(`Received message of type ${message.type} but only type chat is supported. Ignoring...`)
 												// For ignoring the initial cipher texts
 												return;
 										}
@@ -100,7 +102,7 @@ class WhatsappService {
 						const groups = await this.client.listChats({onlyGroups: true});
 						return map(groups, (group) => ({
 								id: group.id._serialized,
-								name: group.name,
+								name: group.name
 						}));
 				} catch (error) {
 						throw error;
